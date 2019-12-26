@@ -9,5 +9,9 @@ int main(char* args) {
 	NewAnn(2, 3, 4);
 
 	PrintAnn();
+
+	//FreeANN();
 	int c = _getch();
+
+	return 0;
 }

@@ -1,26 +1,26 @@
 #pragma once
 struct Neuron;
-struct Wheight;
+struct Weight;
 
-typedef struct Wheight {
+typedef struct Weight {
 	double Value;
 	double Delta;
 	struct Neuron* ConnectedNeuron;
-} Wheight;
+} Weight;
 
 typedef struct Neuron {
 	double Value;
 	double Target;
 	double Error;
 	double Delta;
-	struct WheightsList* Wheights;
+	struct WeightsList* Weights;
 	char Tag[10];
 } Neuron;
 
-typedef struct WheightsList {
+typedef struct WeightsList {
 	unsigned int Length;
-	struct Wheight* Items;
-} WheightsList;
+	struct Weight* Items;
+} WeightsList;
 
 typedef struct {
 	unsigned int Length;

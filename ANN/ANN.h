@@ -5,3 +5,4 @@ ANN Ann;
 
 void NewAnn(int inputSize, int hiddenSize, int outputSize);
 void PrintAnn();
+void FreeANN();
