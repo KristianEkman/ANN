@@ -14,7 +14,7 @@ typedef struct Neuron {
 	double Error;
 	double Delta;
 	struct WeightsList* Weights;
-	char Tag[10];
+	//char Tag[10];
 } Neuron;
 
 typedef struct WeightsList {

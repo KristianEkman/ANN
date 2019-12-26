@@ -3,25 +3,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <Windows.h>
 
 
 void SetInputTag(Neuron* n, char* layer, int index) {
 	char buffer[10];
 	snprintf(buffer, 10, "%s%d\0", layer, index);
-	strcpy_s(n->Tag, 10, buffer);
+	//strcpy_s(n->Tag, 10, buffer);
 }
 
 void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 	NeuronsList* input = &Ann.Layers[0];
-	input->Items = malloc(inputSize + 1 * sizeof(Neuron));//allocating for bias
+	input->Items = GlobalAlloc(0, (inputSize + 1) * sizeof(Neuron));//allocating for bias
 	input->Length = inputSize;
 
 	NeuronsList* hidden = &Ann.Layers[1];
-	hidden->Items = malloc((hiddenSize + 1) * sizeof(Neuron));//allocating for bias
+	hidden->Items = GlobalAlloc(0, (hiddenSize + 1) * sizeof(Neuron));//allocating for bias
 	hidden->Length = hiddenSize;
 
 	NeuronsList* output = &Ann.Layers[2];
-	output->Items = malloc(outputSize * sizeof(Neuron));
+	output->Items = GlobalAlloc(0, outputSize * sizeof(Neuron));
 	output->Length = outputSize;
 
 	Neuron* inputNeuron = input->Items;
@@ -30,8 +31,8 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 		char inpBias = i == input->Length;
 		inputNeuron->Value = inpBias ? 1 : 0;
 
-		WeightsList* p_weightsListI_H = malloc(sizeof(WeightsList));
-		p_weightsListI_H->Items = malloc((hidden->Length + 1) * sizeof(Weight));
+		WeightsList* p_weightsListI_H = GlobalAlloc(0, sizeof(WeightsList));
+		p_weightsListI_H->Items = GlobalAlloc(0, (hidden->Length + 1) * sizeof(Weight));
 		p_weightsListI_H->Length = hidden->Length;
 		inputNeuron->Weights = p_weightsListI_H;
 
@@ -49,8 +50,8 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 
 			pWeightI_H->ConnectedNeuron = pHiddenNeuron;
 			pWeightI_H->Value = ((double)rand() / (RAND_MAX));
-			WeightsList* p_weightsListH_O = malloc(sizeof(WeightsList));
-			p_weightsListH_O->Items = malloc(output->Length * sizeof(Weight));
+			WeightsList* p_weightsListH_O = GlobalAlloc(0, sizeof(WeightsList));
+			p_weightsListH_O->Items = GlobalAlloc(0, output->Length * sizeof(Weight));
 			p_weightsListH_O->Length = output->Length;
 			pHiddenNeuron->Weights = p_weightsListH_O;
 
@@ -90,39 +91,19 @@ void PrintAnn() {
 		for (int j = 0; j < length; j++)
 		{
 			Neuron* neuron = &nl->Items[j];
-			printf("%s (%f)\n", neuron->Tag, neuron->Value);
+			//printf("%s (%f)\n", neuron->Tag, neuron->Value);
 
 			if (l < 2) //output has no weights
 				for (int w = 0; w < neuron->Weights->Length; w++)
 				{
-					printf("\t%s %f\n", neuron->Weights->Items[w].ConnectedNeuron->Tag, neuron->Weights->Items[w].Value);
+					//printf("\t%s %f\n", neuron->Weights->Items[w].ConnectedNeuron->Tag, neuron->Weights->Items[w].Value);
 				}
 		}
 		printf("\n");
 	}
 }
 
-void FreeANN() {
-	NeuronsList* input = &Ann.Layers[0];
-	NeuronsList* hidden = &Ann.Layers[1];
-	NeuronsList* output = &Ann.Layers[2];
+void FreeANN() {	
 
-	Neuron* inputNeuron = input->Items;
-	for (int i = 0; i < input->Length + 1; i++)
-	{
-		free(inputNeuron->Weights->Items);
-		free(inputNeuron->Weights);
-		Neuron* pHiddenNeuron = hidden->Items;
-		for (int h = 0; h < hidden->Length + 1; h++)
-		{
-			free(pHiddenNeuron->Weights->Items);
-			free(pHiddenNeuron->Weights);
-			pHiddenNeuron++;
-		}
-		inputNeuron++;
-	}
-
-	free(Ann.Layers[0].Items);
-	free(Ann.Layers[1].Items);
-	free(Ann.Layers[2].Items);
+	GlobalFree(Ann.Layers[0].Items);
 }

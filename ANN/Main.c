@@ -6,11 +6,13 @@
 #include "Structures.h"
 
 int main(char* args) {
-	NewAnn(2, 3, 4);
+	
+
+	NewAnn(64, 1000, 1);
 
 	PrintAnn();
 
-	//FreeANN();
+	FreeANN();
 	int c = _getch();
 
 	return 0;
