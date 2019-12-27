@@ -1,15 +1,21 @@
 #include "Structures.h"
 #include "ANN.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <Windows.h>
+#include <math.h>
+
 
 
 void SetInputTag(Neuron* n, char* layer, int index) {
 	char buffer[10];
 	snprintf(buffer, 10, "%s%d\0", layer, index);
-	//strcpy_s(n->Tag, 10, buffer);
+#ifdef _DEBUG
+	strcpy_s(n->Tag, 10, buffer);
+#endif // DEBUG
+
 }
 
 void NewAnn(int inputSize, int hiddenSize, int outputSize) {
@@ -35,8 +41,10 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 		p_weightsListI_H->Items = GlobalAlloc(0, (hidden->Length + 1) * sizeof(Weight));
 		p_weightsListI_H->Length = hidden->Length;
 		inputNeuron->Weights = p_weightsListI_H;
-
+#ifdef _DEBUG
 		SetInputTag(inputNeuron, inpBias ? "B\0" : "I\0", i);
+#endif
+
 
 		Neuron* pHiddenNeuron = hidden->Items;
 		Weight* pWeightI_H = p_weightsListI_H->Items;
@@ -49,37 +57,36 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 				continue;
 
 			pWeightI_H->ConnectedNeuron = pHiddenNeuron;
-			pWeightI_H->Value = ((double)rand() / (RAND_MAX));
+			pWeightI_H->Value = ((float)rand() / (RAND_MAX));
 			WeightsList* p_weightsListH_O = GlobalAlloc(0, sizeof(WeightsList));
 			p_weightsListH_O->Items = GlobalAlloc(0, output->Length * sizeof(Weight));
 			p_weightsListH_O->Length = output->Length;
 			pHiddenNeuron->Weights = p_weightsListH_O;
-
+#ifdef _DEBUG
 			SetInputTag(pHiddenNeuron, hidBias ? "B\0" : "H\0", h);
-
+#endif
 			Neuron* pOutputNeuron = output->Items;
 			Weight* pWeightH_O = p_weightsListH_O->Items;
 			for (int o = 0; o < output->Length; o++)
 			{
 				pWeightH_O->ConnectedNeuron = pOutputNeuron;
-				pWeightH_O->Value = ((double)rand() / (RAND_MAX));
+				pWeightH_O->Value = ((float)rand() / (RAND_MAX));
 				pOutputNeuron->Value = 0;
-
+#ifdef _DEBUG
 				SetInputTag(pOutputNeuron, "O", o);
-
+#endif
 				pOutputNeuron++;
 				pWeightH_O++;
 			}
 			pWeightI_H++;
 			pHiddenNeuron++;
 		}
-		pHiddenNeuron->Value = 0;
-
 		inputNeuron++;
 	}
 
 }
 
+#ifdef _DEBUG
 void PrintAnn() {
 	for (int l = 0; l < 3; l++)
 	{
@@ -91,19 +98,65 @@ void PrintAnn() {
 		for (int j = 0; j < length; j++)
 		{
 			Neuron* neuron = &nl->Items[j];
-			//printf("%s (%f)\n", neuron->Tag, neuron->Value);
+			printf("%s (%f)\n", neuron->Tag, neuron->Value);
 
 			if (l < 2) //output has no weights
 				for (int w = 0; w < neuron->Weights->Length; w++)
 				{
-					//printf("\t%s %f\n", neuron->Weights->Items[w].ConnectedNeuron->Tag, neuron->Weights->Items[w].Value);
+					printf("\t%s %f\n", neuron->Weights->Items[w].ConnectedNeuron->Tag, neuron->Weights->Items[w].Value);
 				}
 		}
 		printf("\n");
 	}
 }
+#endif
+
 
 void FreeANN() {	
 
 	GlobalFree(Ann.Layers[0].Items);
+}
+
+double LeakyReLU(float x)
+{
+	if (x >= 0)
+		return x;
+	else
+		return x / 20;
+}
+
+double Sigmoid(double x)
+{
+	float s = 1 / (1 + exp(-x));
+	return s;
+}
+
+void Compute(float * data, int dataLength) {
+
+	for (int i = 0; i < dataLength; i++)
+		Ann.Layers[0].Items[i].Value = data[i];
+
+	//Forward propagation
+	for (int l = 0; l < 2; l++)
+	{
+		for (int n = 0; n <  Ann.Layers[l].Length; n++)
+		{
+			Neuron * neuron = &Ann.Layers[l].Items[n];
+			for (size_t i = 0; i < neuron->Weights->Length; i++)
+			{
+				Weight* weight = &neuron->Weights->Items[i];
+				weight->ConnectedNeuron->Value += (weight->Value * neuron->Value);
+			}
+		}
+
+		int neuronCount = Ann.Layers[l + 1].Length;
+		//if (l + 1 < Layers.Count() - 1)
+		//	neuronCount--; //skipping bias
+		for (int n = 0; n < neuronCount; n++) //next layer
+		{
+			Neuron * neuron = &Ann.Layers[l + 1].Items[n];
+			neuron->Value = LeakyReLU(neuron->Value / (Ann.Layers[l+1].Length + 1));
+			//neuron.Value = Sigmoid(neuron.Value / Layers[l].Count);
+		}
+	}
 }

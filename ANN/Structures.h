@@ -3,18 +3,21 @@ struct Neuron;
 struct Weight;
 
 typedef struct Weight {
-	double Value;
-	double Delta;
+	float Value;
+	float Delta;
 	struct Neuron* ConnectedNeuron;
 } Weight;
 
 typedef struct Neuron {
-	double Value;
-	double Target;
-	double Error;
-	double Delta;
+	float Value;
+	float Target;
+	float Error;
+	float Delta;
 	struct WeightsList* Weights;
-	//char Tag[10];
+#ifdef _DEBUG
+	char Tag[10];
+#endif
+
 } Neuron;
 
 typedef struct WeightsList {
@@ -30,7 +33,7 @@ typedef struct {
 
 typedef struct {
 	NeuronsList Layers[3];
-	double TotalError;
-	const double LearnRate;
+	float TotalError;
+	const float LearnRate;
 } ANN;
 
