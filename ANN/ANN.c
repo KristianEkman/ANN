@@ -93,6 +93,8 @@ void PrintOutput() {
 		Neuron* neuron = &output->Items[i];
 		printf("%f ", neuron->Value);
 	}
+
+	printf("   %f", Ann.TotalError);
 	printf("\n");
 }
 
@@ -157,8 +159,15 @@ void Compute(double * data, int dataLength) {
 }
 
 void BackProp(double * targets, int targLength) {
-	Ann.TotalError = 0;
 
+	if (targLength != Ann.Layers[2].Length)
+	{
+		fprintf(stderr, "Length of target data is not same as Length of output layer.\n");
+		exit(1000);
+	}
+
+	Ann.TotalError = 0;
+	
 	NeuronsList* output = &Ann.Layers[2];;
 	//backwards propagation
 	for (int n = 0; n < output->Length; n++)
@@ -175,6 +184,7 @@ void BackProp(double * targets, int targLength) {
 	NeuronsList* hidden = &Ann.Layers[1];;
 	for (int i = 0; i < hidden->Length; i++)
 	{
+		// This can be done in parallell.
 		Neuron* neuron = &hidden->Items[i];
 		for (int w = 0; w < neuron->Weights->Length; w++)
 		{
@@ -218,7 +228,7 @@ void BackProp(double * targets, int targLength) {
 	//});
 
 	//All deltas are done. Now calculate new weights.
-	for (int l = 0; l < Ann.Layers->Length - 1; l++)
+	for (int l = 0; l < 2; l++)
 	{
 		NeuronsList * layer = &Ann.Layers[l];
 		for (size_t n = 0; n < layer->Length; n++)
