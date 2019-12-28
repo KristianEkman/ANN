@@ -1,34 +1,51 @@
 #pragma once
-struct Neuron;
-struct Weight;
+#define INPUT_SIZE 728 + 1
+#define HIDDEN_SIZE 200 + 1
+#define OUTPUT_SIZE 10
 
-typedef struct Weight {
-	double Value;
-	double Delta;
-	struct Neuron* ConnectedNeuron;
-} Weight;
 
-typedef struct Neuron {
+typedef struct Neuron_O {
 	double Value;
 	double Target;
 	double Error;
 	double Delta;
-	struct WeightsList* Weights;
-} Neuron;
+} Neuron_O;
 
-typedef struct WeightsList {
-	unsigned int Length;
-	struct Weight* Items;
-} WeightsList;
+typedef struct Weight_H_O {
+	double Value;
+	double Delta;
+	struct Neuron_O* ConnectedNeuron;
+} Weight_H_O;
 
-typedef struct NeuronsList {
-	unsigned int Length;
-	struct Neuron* Items;
-} NeuronsList;
+typedef struct Neuron_H {
+	double Value;
+	double Target;
+	double Error;
+	double Delta;
+	struct Weight_H_O Weights[OUTPUT_SIZE];
+} Neuron_H;
 
+
+typedef struct Weight_I_H {
+	double Value;
+	double Delta;
+	struct Neuron_H* ConnectedNeuron;
+} Weight_I_H;
+
+
+typedef struct Neuron_I {
+	double Value;
+	double Target;
+	double Error;
+	double Delta;
+	struct Weight_I_H Weights[HIDDEN_SIZE];
+} Neuron_I;
 
 typedef struct {
-	NeuronsList Layers[3];
+	Neuron_I Inputs[INPUT_SIZE];
+	Neuron_H Hidden[HIDDEN_SIZE];
+	Neuron_O Output[OUTPUT_SIZE];
+
 	double TotalError;
 	double LearnRate;
 } ANN;
