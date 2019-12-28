@@ -21,7 +21,7 @@ typedef struct WeightsList {
 	struct Weight* Items;
 } WeightsList;
 
-typedef struct {
+typedef struct NeuronsList {
 	unsigned int Length;
 	struct Neuron* Items;
 } NeuronsList;

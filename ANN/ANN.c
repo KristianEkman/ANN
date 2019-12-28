@@ -10,15 +10,15 @@
 
 void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 	NeuronsList* input = &Ann.Layers[0];
-	input->Items = GlobalAlloc(0, (inputSize + 1) * sizeof(Neuron));//allocating for bias
+	input->Items = malloc((inputSize + 1) * sizeof(Neuron));//allocating for bias
 	input->Length = inputSize + 1;
 
 	NeuronsList* hidden = &Ann.Layers[1];
-	hidden->Items = GlobalAlloc(0, (hiddenSize + 1) * sizeof(Neuron));//allocating for bias
+	hidden->Items = malloc((hiddenSize + 1) * sizeof(Neuron));//allocating for bias
 	hidden->Length = hiddenSize + 1;
 
 	NeuronsList* output = &Ann.Layers[2];
-	output->Items = GlobalAlloc(0, (outputSize) * sizeof(Neuron));
+	output->Items = malloc((outputSize) * sizeof(Neuron));
 	output->Length = outputSize;
 
 	for (int i = 0; i < input->Length; i++)
@@ -27,8 +27,8 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 		char inpBias = i == input->Length - 1;
 		inputNeuron->Value = inpBias ? 1 : 0;
 
-		inputNeuron->Weights = GlobalAlloc(0, sizeof(WeightsList));
-		inputNeuron->Weights->Items = GlobalAlloc(0, (hiddenSize + 1) * sizeof(Weight));
+		inputNeuron->Weights = malloc(sizeof(WeightsList));
+		inputNeuron->Weights->Items = malloc((hiddenSize + 1) * sizeof(Weight));
 		inputNeuron->Weights->Length = hiddenSize;
 
 		for (int h = 0; h < hidden->Length; h++)
@@ -44,9 +44,9 @@ void NewAnn(int inputSize, int hiddenSize, int outputSize) {
 
 			pWeightI_H->ConnectedNeuron = pHiddenNeuron;
 			pWeightI_H->Value = ((double)rand() / (RAND_MAX));
-			pHiddenNeuron->Weights = GlobalAlloc(0, sizeof(WeightsList));
+			pHiddenNeuron->Weights = malloc(sizeof(WeightsList));
 						
-			pHiddenNeuron->Weights->Items = GlobalAlloc(0, outputSize * sizeof(Weight));
+			pHiddenNeuron->Weights->Items = malloc(outputSize * sizeof(Weight));
 			pHiddenNeuron->Weights->Length = outputSize;
 
 			for (int o = 0; o < output->Length; o++)
@@ -98,10 +98,34 @@ void PrintOutput() {
 	printf("\n");
 }
 
-
 void FreeANN() {	
 
-	free(Ann.Layers[0].Items);
+	NeuronsList* input = &Ann.Layers[0];
+	NeuronsList* hidden = &Ann.Layers[1];
+	NeuronsList* output = &Ann.Layers[2];
+
+	for (int i = 0; i < 1/*input->Length*/; i++)
+	{
+		Neuron* inputNeuron = &input->Items[i];
+		char inpBias = i == input->Length - 1;
+
+		free(inputNeuron->Weights->Items);
+		free(inputNeuron->Weights);
+
+		for (int h = 0; h < 1 /*hidden->Length*/; h++)
+		{
+			Neuron* pHiddenNeuron = &hidden->Items[h];
+			char hidBias = h == hidden->Length - 1;
+			if (inpBias && hidBias)
+				continue;
+
+			free(pHiddenNeuron->Weights->Items);
+			free(pHiddenNeuron->Weights);
+		}
+	}
+	free(input->Items);
+	free(hidden->Items);
+	free(output->Items);
 }
 
 double LeakyReLU(double x)
@@ -166,8 +190,7 @@ void BackProp(double * targets, int targLength) {
 		exit(1000);
 	}
 
-	Ann.TotalError = 0;
-	
+	Ann.TotalError = 0;	
 	NeuronsList* output = &Ann.Layers[2];;
 	//backwards propagation
 	for (int n = 0; n < output->Length; n++)
