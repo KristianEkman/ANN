@@ -188,7 +188,7 @@ void BackProp(double* targets, int targLength) {
 	{
 		//Could be run in parallell
 		Neuron_I* neuron = &Ann.Inputs[i];
-		for (int w = 0; w < HIDDEN_SIZE - 1; w++) //todo: should this be -1??
+		for (int w = 0; w < HIDDEN_SIZE - 1; w++)
 		{
 			Weight_I_H* weight = &neuron->Weights[w];
 			for (size_t c = 0; c < OUTPUT_SIZE; c++)

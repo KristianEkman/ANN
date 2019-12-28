@@ -3,7 +3,6 @@
 #define HIDDEN_SIZE 200 + 1
 #define OUTPUT_SIZE 10
 
-
 typedef struct Neuron_O {
 	double Value;
 	double Target;
@@ -19,9 +18,6 @@ typedef struct Weight_H_O {
 
 typedef struct Neuron_H {
 	double Value;
-	double Target;
-	double Error;
-	double Delta;
 	struct Weight_H_O Weights[OUTPUT_SIZE];
 } Neuron_H;
 
@@ -35,9 +31,6 @@ typedef struct Weight_I_H {
 
 typedef struct Neuron_I {
 	double Value;
-	double Target;
-	double Error;
-	double Delta;
 	struct Weight_I_H Weights[HIDDEN_SIZE];
 } Neuron_I;
 
