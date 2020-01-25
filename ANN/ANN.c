@@ -28,7 +28,7 @@ void NewAnn() {
 				continue;
 
 			pWeightI_H->ConnectedNeuron = pHiddenNeuron;
-			pWeightI_H->Value = ((double)rand() / (RAND_MAX));
+			pWeightI_H->Value = ((double)rand() / (RAND_MAX)) - 1;
 
 			for (int o = 0; o < OUTPUT_SIZE; o++)
 			{
@@ -36,7 +36,7 @@ void NewAnn() {
 				Weight_H_O* pWeightH_O = &pHiddenNeuron->Weights[o];
 
 				pWeightH_O->ConnectedNeuron = pOutputNeuron;
-				pWeightH_O->Value = ((double)rand() / (RAND_MAX));
+				pWeightH_O->Value = ((double)rand() / (RAND_MAX)) - 1;
 				pOutputNeuron->Value = 0;
 			}
 		}

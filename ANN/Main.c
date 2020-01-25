@@ -15,16 +15,16 @@ int main(char* args) {
 	//PrintAnn();
 	double  data[INPUT_SIZE - 1];
 	for (size_t i = 0; i < INPUT_SIZE - 1; i++)
-		data[i] = rand() / (double)RAND_MAX;
+		data[i] = (rand() / (double)RAND_MAX) - 1;
 
 	Ann.LearnRate = 0.5;
 	clock_t start = clock();
-	double targets[] = { 0, 1,0,0,0,0,0,0,0,0 };
-	int loops = 100;
+	double targets[] = { -0.5 };
+	int loops = 1000;
 	for (size_t i = 0; i < loops; i++)
 	{
 		Compute(data, INPUT_SIZE - 1);
-		BackProp(targets, 10);
+		BackProp(targets, OUTPUT_SIZE);
 		PrintOutput();
 	}
 	clock_t stop = clock();

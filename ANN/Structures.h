@@ -1,7 +1,7 @@
 #pragma once
-#define INPUT_SIZE 728 + 1
-#define HIDDEN_SIZE 200 + 1
-#define OUTPUT_SIZE 10
+#define INPUT_SIZE 65 + 1
+#define HIDDEN_SIZE 2000 + 1
+#define OUTPUT_SIZE 1
 
 typedef struct Neuron_O {
 	double Value;
