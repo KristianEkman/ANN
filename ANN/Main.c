@@ -1,13 +1,26 @@
 ﻿#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#ifdef _WIN32
 #include <conio.h>
+#endif
 
 #include "ANN.h"
-#include "Structures.h"
 
-int main(char* args) {
+static void WaitForExit(void)
+{
+#ifdef _WIN32
+	printf("Done! Press a key to exit");
+	(void)_getch();
+#else
+	printf("Done!\n");
+#endif
+}
+
+int main(void) {
 	printf("Welcome\n");
+	srand((unsigned int)time(NULL));
 
 	NewAnn();
 	printf("Initialized %.2f MB\n", (float)sizeof(ANN) / 0x100000 );
@@ -21,7 +34,7 @@ int main(char* args) {
 	clock_t start = clock();
 	double targets[] = { -0.5 };
 	int loops = 1000;
-	for (size_t i = 0; i < loops; i++)
+	for (int i = 0; i < loops; i++)
 	{
 		Compute(data, INPUT_SIZE - 1);
 		BackProp(targets, OUTPUT_SIZE);
@@ -34,8 +47,7 @@ int main(char* args) {
 	PrintOutput();
 	//PrintAnn();
 
-	printf("Done! Press a key to exit");
-	int c = _getch();
+	WaitForExit();
 
 	return 0;
 }

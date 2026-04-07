@@ -1,14 +1,15 @@
 #include "Structures.h"
 #include "ANN.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <Windows.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
-void NewAnn() {
+ANN Ann;
+
+
+void NewAnn(void) {
 
 	for (int i = 0; i < INPUT_SIZE; i++)
 	{
@@ -44,7 +45,7 @@ void NewAnn() {
 
 }
 
-void PrintAnn() {
+void PrintAnn(void) {
 	printf("Input\n");
 	for (size_t i = 0; i < INPUT_SIZE; i++)
 	{
@@ -77,7 +78,7 @@ void PrintAnn() {
 	}
 }
 
-void PrintOutput() {
+void PrintOutput(void) {
 	for (size_t i = 0; i < OUTPUT_SIZE; i++)
 	{
 		Neuron_O* neuron = &Ann.Output[i];
@@ -110,7 +111,7 @@ void Compute(double* data, int dataLength) {
 		exit(1000);
 	}
 
-	for (size_t i = 0; i < dataLength; i++)
+	for (int i = 0; i < dataLength; i++)
 		Ann.Inputs[i].Value = data[i];
 
 	//Forward propagation
