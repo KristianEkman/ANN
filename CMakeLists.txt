@@ -4,18 +4,21 @@ project(ANN LANGUAGES C)
 
 enable_testing()
 
-add_executable(ANN
+add_library(ANN_lib
     ANN/ANN.c
+)
+
+add_executable(ANN
     ANN/Main.c
 )
 
 add_executable(ANN_test
-    ANN/ANN.c
     ANN/ANN_test.c
 )
 
-foreach(target ANN ANN_test)
-    target_include_directories(${target} PRIVATE ANN)
+target_include_directories(ANN_lib PUBLIC ANN)
+
+foreach(target ANN_lib ANN ANN_test)
 
     set_target_properties(${target} PROPERTIES
         C_STANDARD 11
@@ -29,9 +32,13 @@ foreach(target ANN ANN_test)
         target_compile_options(${target} PRIVATE -Wall -Wextra -pedantic)
     endif()
 
-    if(UNIX)
-        target_link_libraries(${target} PRIVATE m)
-    endif()
 endforeach()
+
+if(UNIX)
+    target_link_libraries(ANN_lib PUBLIC m)
+endif()
+
+target_link_libraries(ANN PRIVATE ANN_lib)
+target_link_libraries(ANN_test PRIVATE ANN_lib)
 
 add_test(NAME ANN_test COMMAND ANN_test)

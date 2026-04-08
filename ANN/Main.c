@@ -19,35 +19,65 @@ static void WaitForExit(void)
 }
 
 int main(void) {
+	const size_t inputCount = 65;
+	const size_t hiddenCount = 2000;
+	const size_t outputCount = 1;
+	ANN* ann;
+	double* data;
+	double* targets;
+	int loops = 1000;
+	int exitCode = EXIT_SUCCESS;
+
 	printf("Welcome\n");
 	srand((unsigned int)time(NULL));
 
-	NewAnn();
-	printf("Initialized %.2f MB\n", (float)sizeof(ANN) / 0x100000 );
+	ann = NewAnn(inputCount, hiddenCount, outputCount);
+	if (ann == NULL)
+	{
+		fprintf(stderr, "Failed to allocate ANN.\n");
+		return EXIT_FAILURE;
+	}
 
-	//PrintAnn();
-	double  data[INPUT_SIZE - 1];
-	for (size_t i = 0; i < INPUT_SIZE - 1; i++)
+	data = malloc(inputCount * sizeof(*data));
+	targets = malloc(outputCount * sizeof(*targets));
+	if (data == NULL || targets == NULL)
+	{
+		fprintf(stderr, "Failed to allocate sample buffers.\n");
+		free(data);
+		free(targets);
+		FreeAnn(ann);
+		return EXIT_FAILURE;
+	}
+
+	printf("Initialized %.2f MB\n", (double)AnnMemoryUsage(ann) / 0x100000);
+
+	for (size_t i = 0; i < inputCount; i++)
 		data[i] = (rand() / (double)RAND_MAX) - 1;
 
-	Ann.LearnRate = 0.5;
+	targets[0] = -0.5;
+	ann->LearnRate = 0.5;
 	clock_t start = clock();
-	double targets[] = { -0.5 };
-	int loops = 1000;
 	for (int i = 0; i < loops; i++)
 	{
-		Compute(data, INPUT_SIZE - 1);
-		BackProp(targets, OUTPUT_SIZE);
-		PrintOutput();
+		if (Compute(ann, data, inputCount) != 0 || BackProp(ann, targets, outputCount) != 0)
+		{
+			fprintf(stderr, "ANN compute step failed.\n");
+			exitCode = EXIT_FAILURE;
+			goto cleanup;
+		}
+
+		PrintOutput(ann);
 	}
 	clock_t stop = clock();
 	double sec = ((double)stop - (double)start) / (double)CLOCKS_PER_SEC;
-	//Loops per sec : 580.012760
 	printf("Loops per sec: %f\n", loops / sec);
-	PrintOutput();
-	//PrintAnn();
+	PrintOutput(ann);
 
+	cleanup:
+	free(targets);
+	free(data);
+	FreeAnn(ann);
 	WaitForExit();
 
-	return 0;
+	return exitCode;
 }
