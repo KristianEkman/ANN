@@ -18,7 +18,7 @@ build:
 test: rebuild run-test
 
 run: rebuild
-	./$(RUN_TARGET)
+	./$(RUN_TARGET) $(ARGS)
 
 run-test:
 	$(CTEST) --test-dir $(BUILD_DIR) --output-on-failure

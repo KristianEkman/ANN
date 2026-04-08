@@ -81,6 +81,18 @@ Or run it directly after building:
 ./build/ANN
 ```
 
+To load or save a weights file with the sample executable:
+
+```sh
+./build/ANN --load weights.txt --save weights.txt
+```
+
+The Make wrapper also passes optional arguments through:
+
+```sh
+make run ARGS="--load weights.txt --save weights.txt"
+```
+
 ## Test
 
 Run the full test suite:
@@ -114,6 +126,8 @@ The library API currently exposes:
 - `int BackProp(ANN* ann, const double* targets, size_t targLength)`
 - `void PrintAnn(const ANN* ann)`
 - `void PrintOutput(const ANN* ann)`
+- `int SaveAnnWeights(const ANN* ann, const char* filePath)`
+- `int LoadAnnWeights(ANN* ann, const char* filePath)`
 
 The `ANN` struct is public, so runtime parameters such as `LearnRate` are configured directly on the instance.
 
@@ -151,6 +165,18 @@ int main(void)
 		return 1;
 	}
 
+	if (SaveAnnWeights(ann, "weights.txt") != 0)
+	{
+		FreeAnn(ann);
+		return 1;
+	}
+
+	if (LoadAnnWeights(ann, "weights.txt") != 0)
+	{
+		FreeAnn(ann);
+		return 1;
+	}
+
 	FreeAnn(ann);
 	return 0;
 }
@@ -180,4 +206,5 @@ On Unix-like systems the math library flag `-lm` is required.
 ## Notes
 
 - `NewAnn` initializes weights with `rand()`, so call `srand(...)` before creating a network if you want non-deterministic initialization.
+- Weight files are stored as plain text with a version header and the expected layer sizes. `LoadAnnWeights(...)` rejects files that do not match the ANN dimensions.
 - There is currently no `install()` step or `find_package()` support. Reuse is done either by `add_subdirectory(...)` or by linking the generated static library directly.

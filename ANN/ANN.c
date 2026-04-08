@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static const char AnnWeightsFileMagic[] = "ANN_WEIGHTS_V1";
+
 static size_t InputNodeCount(const ANN* ann)
 {
 	return ann->InputCount + 1;
@@ -40,6 +42,23 @@ static int AllocateDoubles(double** buffer, size_t count)
 	return *buffer != NULL;
 }
 
+static void ResetTransientState(ANN* ann)
+{
+	memset(ann->Inputs, 0, InputNodeCount(ann) * sizeof(*ann->Inputs));
+	memset(ann->Hidden, 0, HiddenNodeCount(ann) * sizeof(*ann->Hidden));
+	memset(ann->Output, 0, ann->OutputCount * sizeof(*ann->Output));
+	memset(ann->OutputTargets, 0, ann->OutputCount * sizeof(*ann->OutputTargets));
+	memset(ann->OutputErrors, 0, ann->OutputCount * sizeof(*ann->OutputErrors));
+	memset(ann->OutputDelta, 0, ann->OutputCount * sizeof(*ann->OutputDelta));
+	memset(ann->HiddenDelta, 0, ann->HiddenCount * sizeof(*ann->HiddenDelta));
+	memset(ann->DeltaInputHidden, 0, InputHiddenWeightCount(ann) * sizeof(*ann->DeltaInputHidden));
+	memset(ann->DeltaHiddenOutput, 0, HiddenOutputWeightCount(ann) * sizeof(*ann->DeltaHiddenOutput));
+
+	ann->Inputs[ann->InputCount] = 1.0;
+	ann->Hidden[ann->HiddenCount] = 1.0;
+	ann->TotalError = 0.0;
+}
+
 static double RandomWeight(void)
 {
 	return ((double)rand() / (double)RAND_MAX) - 1.0;
@@ -68,6 +87,28 @@ static void RandomizeWeights(ANN* ann)
 
 	for (size_t i = 0; i < HiddenOutputWeightCount(ann); i++)
 		ann->WeightsHiddenOutput[i] = RandomWeight();
+}
+
+static int WriteWeights(FILE* file, const double* weights, size_t count)
+{
+	for (size_t i = 0; i < count; i++)
+	{
+		if (fprintf(file, "%.17g\n", weights[i]) < 0)
+			return 0;
+	}
+
+	return 1;
+}
+
+static int ReadWeights(FILE* file, double* weights, size_t count)
+{
+	for (size_t i = 0; i < count; i++)
+	{
+		if (fscanf(file, " %lf", &weights[i]) != 1)
+			return 0;
+	}
+
+	return 1;
 }
 
 ANN* NewAnn(size_t inputCount, size_t hiddenCount, size_t outputCount)
@@ -193,6 +234,96 @@ void PrintOutput(const ANN* ann)
 		printf("%f ", ann->Output[i]);
 
 	printf("   %f\n", ann->TotalError);
+}
+
+int SaveAnnWeights(const ANN* ann, const char* filePath)
+{
+	FILE* file;
+	int success;
+	int closeStatus;
+
+	if (ann == NULL || filePath == NULL || filePath[0] == '\0')
+		return -1;
+
+	file = fopen(filePath, "w");
+	if (file == NULL)
+		return -1;
+
+	success = fprintf(file,
+		"%s\n%zu %zu %zu\n",
+		AnnWeightsFileMagic,
+		ann->InputCount,
+		ann->HiddenCount,
+		ann->OutputCount) >= 0;
+
+	if (success)
+		success = WriteWeights(file, ann->WeightsInputHidden, InputHiddenWeightCount(ann));
+
+	if (success)
+		success = WriteWeights(file, ann->WeightsHiddenOutput, HiddenOutputWeightCount(ann));
+
+	closeStatus = fclose(file);
+	return success && closeStatus == 0 ? 0 : -1;
+}
+
+int LoadAnnWeights(ANN* ann, const char* filePath)
+{
+	FILE* file;
+	char header[32];
+	char trailer[2];
+	size_t inputCount;
+	size_t hiddenCount;
+	size_t outputCount;
+	double* inputHiddenWeights = NULL;
+	double* hiddenOutputWeights = NULL;
+	int status = -1;
+
+	if (ann == NULL || filePath == NULL || filePath[0] == '\0')
+		return -1;
+
+	file = fopen(filePath, "r");
+	if (file == NULL)
+		return -1;
+
+	if (fscanf(file, " %31s", header) != 1
+		|| strcmp(header, AnnWeightsFileMagic) != 0
+		|| fscanf(file, " %zu %zu %zu", &inputCount, &hiddenCount, &outputCount) != 3
+		|| inputCount != ann->InputCount
+		|| hiddenCount != ann->HiddenCount
+		|| outputCount != ann->OutputCount)
+	{
+		goto cleanup;
+	}
+
+	if (!AllocateDoubles(&inputHiddenWeights, InputHiddenWeightCount(ann))
+		|| !AllocateDoubles(&hiddenOutputWeights, HiddenOutputWeightCount(ann)))
+	{
+		goto cleanup;
+	}
+
+	if (!ReadWeights(file, inputHiddenWeights, InputHiddenWeightCount(ann))
+		|| !ReadWeights(file, hiddenOutputWeights, HiddenOutputWeightCount(ann))
+		|| fscanf(file, " %1s", trailer) != EOF)
+	{
+		goto cleanup;
+	}
+
+	memcpy(ann->WeightsInputHidden,
+		inputHiddenWeights,
+		InputHiddenWeightCount(ann) * sizeof(*ann->WeightsInputHidden));
+	memcpy(ann->WeightsHiddenOutput,
+		hiddenOutputWeights,
+		HiddenOutputWeightCount(ann) * sizeof(*ann->WeightsHiddenOutput));
+	ResetTransientState(ann);
+	status = 0;
+
+cleanup:
+	free(hiddenOutputWeights);
+	free(inputHiddenWeights);
+	if (fclose(file) != 0 && status == 0)
+		status = -1;
+
+	return status;
 }
 
 int Compute(ANN* ann, const double* data, size_t dataLength)

@@ -8,3 +8,5 @@ void PrintAnn(const ANN* ann);
 int Compute(ANN* ann, const double* data, size_t dataLength);
 int BackProp(ANN* ann, const double* targets, size_t targLength);
 void PrintOutput(const ANN* ann);
+int SaveAnnWeights(const ANN* ann, const char* filePath);
+int LoadAnnWeights(ANN* ann, const char* filePath);

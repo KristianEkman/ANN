@@ -33,6 +33,26 @@ static double TotalHalfSquaredError(const double* targets, const double* values,
 	return total;
 }
 
+static void FillWeights(ANN* ann)
+{
+	for (size_t i = 0; i < (ann->InputCount + 1) * ann->HiddenCount; i++)
+		ann->WeightsInputHidden[i] = ((double)(i + 1) / 17.0) - 0.75;
+
+	for (size_t i = 0; i < (ann->HiddenCount + 1) * ann->OutputCount; i++)
+		ann->WeightsHiddenOutput[i] = ((double)(i + 3) / 19.0) - 0.5;
+}
+
+static int DoublesMatch(const double* left, const double* right, size_t count)
+{
+	for (size_t i = 0; i < count; i++)
+	{
+		if (fabs(left[i] - right[i]) > 1e-12)
+			return 0;
+	}
+
+	return 1;
+}
+
 static int TestRejectsZeroSizedLayer(void)
 {
 	ANN* ann = NewAnn(0, 4, 1);
@@ -154,6 +174,152 @@ static int TestTrainingReducesError(void)
 	return EXIT_SUCCESS;
 }
 
+static int TestSaveAndLoadWeightsRoundTrip(void)
+{
+	const char* weightsPath = "ann_weights_round_trip.txt";
+	ANN* source;
+	ANN* loaded;
+	double data[SMALL_INPUT_COUNT];
+
+	FillInput(data, SMALL_INPUT_COUNT);
+	remove(weightsPath);
+
+	source = NewAnn(SMALL_INPUT_COUNT, SMALL_HIDDEN_COUNT, SMALL_OUTPUT_COUNT);
+	loaded = NewAnn(SMALL_INPUT_COUNT, SMALL_HIDDEN_COUNT, SMALL_OUTPUT_COUNT);
+	if (source == NULL || loaded == NULL)
+	{
+		fprintf(stderr, "Failed to allocate ANN for weight persistence test.\n");
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	FillWeights(source);
+	loaded->LearnRate = 0.25;
+
+	if (SaveAnnWeights(source, weightsPath) != 0)
+	{
+		fprintf(stderr, "Failed to save weights.\n");
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	loaded->Inputs[0] = 42.0;
+	loaded->Hidden[0] = -13.0;
+	loaded->Output[0] = 9.0;
+	loaded->TotalError = 7.0;
+
+	if (LoadAnnWeights(loaded, weightsPath) != 0)
+	{
+		fprintf(stderr, "Failed to load saved weights.\n");
+		remove(weightsPath);
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (!DoublesMatch(source->WeightsInputHidden,
+		loaded->WeightsInputHidden,
+		(SMALL_INPUT_COUNT + 1) * SMALL_HIDDEN_COUNT)
+		|| !DoublesMatch(source->WeightsHiddenOutput,
+			loaded->WeightsHiddenOutput,
+			(SMALL_HIDDEN_COUNT + 1) * SMALL_OUTPUT_COUNT))
+	{
+		fprintf(stderr, "Loaded weights do not match saved weights.\n");
+		remove(weightsPath);
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (loaded->Inputs[0] != 0.0 || loaded->Hidden[0] != 0.0 || loaded->Output[0] != 0.0 || loaded->TotalError != 0.0)
+	{
+		fprintf(stderr, "Loading weights should reset transient ANN state.\n");
+		remove(weightsPath);
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (Compute(source, data, SMALL_INPUT_COUNT) != 0 || Compute(loaded, data, SMALL_INPUT_COUNT) != 0)
+	{
+		fprintf(stderr, "Compute failed after loading weights.\n");
+		remove(weightsPath);
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (!DoublesMatch(source->Output, loaded->Output, SMALL_OUTPUT_COUNT))
+	{
+		fprintf(stderr, "Loaded ANN output does not match saved ANN output.\n");
+		remove(weightsPath);
+		FreeAnn(loaded);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	remove(weightsPath);
+	FreeAnn(loaded);
+	FreeAnn(source);
+	return EXIT_SUCCESS;
+}
+
+static int TestRejectsMismatchedWeightFile(void)
+{
+	const char* weightsPath = "ann_weights_mismatch.txt";
+	ANN* source;
+	ANN* mismatched;
+	double originalWeight;
+
+	remove(weightsPath);
+
+	source = NewAnn(SMALL_INPUT_COUNT, SMALL_HIDDEN_COUNT, SMALL_OUTPUT_COUNT);
+	mismatched = NewAnn(SMALL_INPUT_COUNT + 1, SMALL_HIDDEN_COUNT, SMALL_OUTPUT_COUNT);
+	if (source == NULL || mismatched == NULL)
+	{
+		fprintf(stderr, "Failed to allocate ANN for mismatched weight test.\n");
+		FreeAnn(mismatched);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	FillWeights(source);
+	originalWeight = mismatched->WeightsInputHidden[0];
+
+	if (SaveAnnWeights(source, weightsPath) != 0)
+	{
+		fprintf(stderr, "Failed to save weights for mismatch test.\n");
+		FreeAnn(mismatched);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (LoadAnnWeights(mismatched, weightsPath) == 0)
+	{
+		fprintf(stderr, "Loading should fail when ANN dimensions do not match.\n");
+		remove(weightsPath);
+		FreeAnn(mismatched);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	if (mismatched->WeightsInputHidden[0] != originalWeight)
+	{
+		fprintf(stderr, "Failed load should not modify existing weights.\n");
+		remove(weightsPath);
+		FreeAnn(mismatched);
+		FreeAnn(source);
+		return EXIT_FAILURE;
+	}
+
+	remove(weightsPath);
+	FreeAnn(mismatched);
+	FreeAnn(source);
+	return EXIT_SUCCESS;
+}
+
 int main(void)
 {
 	if (TestRejectsZeroSizedLayer() != EXIT_SUCCESS)
@@ -163,6 +329,12 @@ int main(void)
 		return EXIT_FAILURE;
 
 	if (TestTrainingReducesError() != EXIT_SUCCESS)
+		return EXIT_FAILURE;
+
+	if (TestSaveAndLoadWeightsRoundTrip() != EXIT_SUCCESS)
+		return EXIT_FAILURE;
+
+	if (TestRejectsMismatchedWeightFile() != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 
 	printf("ANN tests passed\n");
