@@ -4,42 +4,55 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 ANN Ann;
 
+static double RandomWeight(void)
+{
+	return ((double)rand() / (double)RAND_MAX) - 1.0;
+}
+
+static void ResetForwardState(void)
+{
+	Ann.Inputs[INPUT_SIZE - 1].Value = 1.0;
+
+	for (int h = 0; h < HIDDEN_SIZE - 1; h++)
+		Ann.Hidden[h].Value = 0.0;
+	Ann.Hidden[HIDDEN_SIZE - 1].Value = 1.0;
+
+	for (int o = 0; o < OUTPUT_SIZE; o++)
+		Ann.Output[o].Value = 0.0;
+}
+
 
 void NewAnn(void) {
+	memset(&Ann, 0, sizeof Ann);
+	Ann.Inputs[INPUT_SIZE - 1].Value = 1.0;
+	Ann.Hidden[HIDDEN_SIZE - 1].Value = 1.0;
 
 	for (int i = 0; i < INPUT_SIZE; i++)
 	{
 		Neuron_I* inputNeuron = &Ann.Inputs[i];
 		char inpBias = i == INPUT_SIZE - 1;
-		inputNeuron->Value = inpBias ? 1 : 0;
 
 		for (int h = 0; h < HIDDEN_SIZE; h++)
 		{
-			Neuron_H* pHiddenNeuron = &Ann.Hidden[h];
 			Weight_I_H* pWeightI_H = &inputNeuron->Weights[h];
+			pWeightI_H->ConnectedNeuron = &Ann.Hidden[h];
+			pWeightI_H->Value = (inpBias && h == HIDDEN_SIZE - 1) ? 0.0 : RandomWeight();
+		}
+	}
 
-			char hidBias = h == HIDDEN_SIZE - 1;
-
-			pHiddenNeuron->Value = hidBias ? 1 : 0;
-			if (inpBias && hidBias) //no connection between biases
-				continue;
-
-			pWeightI_H->ConnectedNeuron = pHiddenNeuron;
-			pWeightI_H->Value = ((double)rand() / (RAND_MAX)) - 1;
-
-			for (int o = 0; o < OUTPUT_SIZE; o++)
-			{
-				Neuron_O* pOutputNeuron = &Ann.Output[o];
-				Weight_H_O* pWeightH_O = &pHiddenNeuron->Weights[o];
-
-				pWeightH_O->ConnectedNeuron = pOutputNeuron;
-				pWeightH_O->Value = ((double)rand() / (RAND_MAX)) - 1;
-				pOutputNeuron->Value = 0;
-			}
+	for (int h = 0; h < HIDDEN_SIZE; h++)
+	{
+		Neuron_H* hiddenNeuron = &Ann.Hidden[h];
+		for (int o = 0; o < OUTPUT_SIZE; o++)
+		{
+			Weight_H_O* pWeightH_O = &hiddenNeuron->Weights[o];
+			pWeightH_O->ConnectedNeuron = &Ann.Output[o];
+			pWeightH_O->Value = RandomWeight();
 		}
 	}
 
@@ -110,6 +123,8 @@ void Compute(double* data, int dataLength) {
 		fprintf(stderr, "Length of input data is not same as Length of input layer.\n");
 		exit(1000);
 	}
+
+	ResetForwardState();
 
 	for (int i = 0; i < dataLength; i++)
 		Ann.Inputs[i].Value = data[i];
@@ -192,6 +207,7 @@ void BackProp(double* targets, int targLength) {
 		for (int w = 0; w < HIDDEN_SIZE - 1; w++)
 		{
 			Weight_I_H* weight = &neuron->Weights[w];
+			weight->Delta = 0.0;
 			for (size_t c = 0; c < OUTPUT_SIZE; c++)
 			{
 				Weight_H_O* connectedWeight = &weight->ConnectedNeuron->Weights[c];

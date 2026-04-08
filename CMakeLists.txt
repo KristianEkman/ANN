@@ -2,25 +2,36 @@ cmake_minimum_required(VERSION 3.16)
 
 project(ANN LANGUAGES C)
 
+enable_testing()
+
 add_executable(ANN
     ANN/ANN.c
     ANN/Main.c
 )
 
-target_include_directories(ANN PRIVATE ANN)
-
-set_target_properties(ANN PROPERTIES
-    C_STANDARD 11
-    C_STANDARD_REQUIRED YES
-    C_EXTENSIONS NO
+add_executable(ANN_test
+    ANN/ANN.c
+    ANN/ANN_test.c
 )
 
-if(MSVC)
-    target_compile_options(ANN PRIVATE /W3)
-else()
-    target_compile_options(ANN PRIVATE -Wall -Wextra -pedantic)
-endif()
+foreach(target ANN ANN_test)
+    target_include_directories(${target} PRIVATE ANN)
 
-if(UNIX)
-    target_link_libraries(ANN PRIVATE m)
-endif()
+    set_target_properties(${target} PROPERTIES
+        C_STANDARD 11
+        C_STANDARD_REQUIRED YES
+        C_EXTENSIONS NO
+    )
+
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W3)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -pedantic)
+    endif()
+
+    if(UNIX)
+        target_link_libraries(${target} PRIVATE m)
+    endif()
+endforeach()
+
+add_test(NAME ANN_test COMMAND ANN_test)
